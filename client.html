@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>C++ Client HTML Interaction</title>
+</head>
+<body>
+<h1>C++ Client HTML Interaction</h1>
+
+<!-- 添加数据表单 -->
+<h2>添加数据</h2>
+<form id="add-form">
+    <label for="add-key">Key:</label>
+    <input type="text" id="add-key" name="key"><br>
+    <label for="add-value">Value:</label>
+    <input type="text" id="add-value" name="value"><br>
+    <button type="submit" onclick="addData()">添加数据</button>
+</form>
+
+<!-- 查询数据表单 -->
+<h2>查询数据</h2>
+<form id="query-form">
+    <label for="query-key">Key:</label>
+    <input type="text" id="query-key" name="key"><br>
+    <button type="submit" onclick="queryData()">查询数据</button>
+</form>
+
+<!-- 显示结果 -->
+<p id="result"></p>
+
+<script>
+    function addData() {
+        var key = document.getElementById("add-key").value;
+        var value = document.getElementById("add-value").value;
+        sendRequest("add", key, value);
+    }
+
+    function queryData() {
+        var key = document.getElementById("query-key").value;
+        sendRequest("query", key);
+    }
+
+    function sendRequest(action, key, value) {
+        var url = "http://202.199.6.229:8081/" + action + "?key=" + encodeURIComponent(key);
+        if (value !== undefined) {
+            url += "&value=" + encodeURIComponent(value);
+        }
+
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                var response = JSON.parse(xhr.responseText);
+                document.getElementById("result").innerText = "C++ Client Response: " + response.message;
+            }
+        };
+        xhr.open("GET", url, true);
+        xhr.send();
+    }
+</script>
+</body>
+</html>

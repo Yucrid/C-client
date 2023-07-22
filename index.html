@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Simple Web Page</title>
+</head>
+<body>
+<h1>Hello, World!</h1>
+<input type="text" id="key" placeholder="Key">
+<input type="text" id="value" placeholder="Value">
+<button onclick="insertData()">Add Data</button>
+<br>
+<input type="text" id="searchKey" placeholder="Enter key">
+<button onclick="searchData()">Search</button>
+<br>
+<p>Data from Backend: <span id="data"></span></p>
+
+<script>
+    function insertData() {
+        const key = document.getElementById('key').value;
+        const value = document.getElementById('value').value;
+
+        fetch('/insert_data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({key: key, value: value})
+        })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('data').innerText = data.result;
+            });
+    }
+
+    function searchData() {
+        const key = document.getElementById('searchKey').value;
+
+        fetch(`/search_data?key=${key}`)
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('data').innerText = data;
+            });
+    }
+</script>
+</body>
+</html>
