@@ -119,7 +119,6 @@ void handle_post(const httplib::Request &req, httplib::Response &res) {
     }
 }
 void handle_change_post(const httplib::Request &req, httplib::Response &res) {
-
     json body;
     try {
         body = json::parse(req.body);
@@ -128,7 +127,6 @@ void handle_change_post(const httplib::Request &req, httplib::Response &res) {
         res.set_content("Invalid JSON data", "text/plain");
         return;
     }
-
     if (body.contains("key") && body.contains("value")) {
         std::string key = body["key"];
         std::string value = body["value"];
@@ -171,6 +169,8 @@ void handle_get(const httplib::Request &req, httplib::Response &res) {
 
     if (body.contains("key") && body.contains("message")) {
         // 构造查询数据的 SQL 语句
+        std::string databaseHash,blockchainHash;
+        std::string value;
         std::string key = body["key"];
         std::string message = body["message"];
         std::string select_query = "SELECT value_column FROM data_table WHERE key_column = '" + key + "'";
@@ -182,17 +182,21 @@ void handle_get(const httplib::Request &req, httplib::Response &res) {
                 MYSQL_ROW row = mysql_fetch_row(result);
                 if (row != nullptr) {
                     // 提取查询结果中的value值
-                    std::string value = row[0];
+                    value = row[0];
                     json jsonData = json::parse(message);
-
+                    LOG(INFO) << value;
                     // 访问嵌套的属性
                     std::string str = jsonData["digest"];
                     HashString hash = jsonData["hash"];
                     HashString root = jsonData["root"];
+                    blockchainHash = jsonData["valueHash"];
+                    int number = jsonData["number"];
                     std::vector<HashString> proof = jsonData["merkleProof_Siblings"];
                     uint32_t path = jsonData["merkleProof_Path"];
-                    HashString valueHash = calculateSHA256(value);
-                    //HashString digest = calculateSHA256(str);
+                    HashString valuehash = calculateSHA256(value);
+                    databaseHash = util::OpenSSLSHA256::toString(valuehash);
+                    LOG(INFO) << databaseHash;
+                    LOG(INFO) <<blockchainHash;
                     for (int i=0 ; i<proof.size(); i++) {
                         if ((path & 1) == 1) {  // hash leaf 1 before leaf 0
                             hash = combineHashValues(hash, proof[i]);
@@ -201,14 +205,27 @@ void handle_get(const httplib::Request &req, httplib::Response &res) {
                         }
                         path >>= 1;
                     }
+                    LOG(INFO) << "VERIFY";
                     // 打印提取的数据
                     json response;
                     response["success"] = true;
-                    response["message"] = proof;
+                    response["message"] = "验证成功,";
+                    if (databaseHash != blockchainHash){
+                        response["success"] = false;
+                        response["message"] = "哈希值验证错误";
+                    }else{
+                        if (root != hash){
+                            response["success"] = false;
+                            response["message"] = "默克尔验证错误";
+                        }
+                    }
                     response["root"] = root;
                     response["digest"] = str;
-                    response["valuehash"] = valueHash;
+                    response["value"] = value;
+                    response["databaseHash"] = databaseHash;
+                    response["blockchainHash"] = blockchainHash;
                     response["hash"] = hash;
+                    response["number"] = number;
                     res.set_content(response.dump(), "application/json");
                     mysql_free_result(result);
                     return;

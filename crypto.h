@@ -2,6 +2,7 @@
 // Created by peng on 11/22/22.
 //
 
+
 #pragma once
 
 #include <openssl/evp.h>
@@ -49,6 +50,18 @@ namespace OpenSSL {
     template <int N>
     using digestType = std::array<uint8_t, N>;
 
+    inline auto bytesToString(const std::array<uint8_t, 32>& md) {
+        // build output string
+        static const auto hAlpha{"0123456789abcdef"};
+        std::string result;
+        result.reserve(md.size()*2);
+        for (const auto& b : md) {
+            result.push_back(hAlpha[(b >> 4) & 0xF]);
+            result.push_back(hAlpha[b & 0xF]);
+        }
+        return result;
+    }
+
     inline auto stringToBytes(std::string_view readable) {
         std::string str;
         str.reserve(readable.size()/2);
@@ -81,6 +94,9 @@ namespace util {
             return std::nullopt;
         }
 
+        static inline auto toString(const digestType& md) {
+            return OpenSSL::bytesToString(md);
+        }
 
         static inline void initCrypto() {
             OpenSSL_add_all_digests();
@@ -210,6 +226,10 @@ namespace util {
             return std::make_pair(publicKeyStr, privateKeyStr);
         }
 
+
+        static inline auto toString(const digestType& md) {
+            return OpenSSL::bytesToString(md);
+        }
 
         static inline void initCrypto() {
             OpenSSL_add_all_digests();
